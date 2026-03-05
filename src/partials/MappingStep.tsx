@@ -31,8 +31,6 @@ function buildStudentOptions(fieldKey: string) {
   });
 }
 
-// ─── Mapping row ─────────────────────────────────────────────────────────────
-
 interface MappingRowProps {
   file: File;
   match: MatchResult;
@@ -59,11 +57,18 @@ function MappingRow({ file, match, fieldKey, onChange }: MappingRowProps) {
       <div className="flex items-center gap-3">
         {/* File info */}
         <div className="flex-1 min-w-0">
-          <AttachmentRow fileName={file.name} fileSize={formatBytes(file.size)} />
+          <AttachmentRow
+            fileName={file.name}
+            fileSize={formatBytes(file.size)}
+          />
         </div>
 
         {/* Directional arrow */}
-        <ArrowRight size={18} strokeWidth={1.5} className="shrink-0 text-neutral-40" />
+        <ArrowRight
+          size={18}
+          strokeWidth={1.5}
+          className="shrink-0 text-neutral-40"
+        />
 
         {/* Student select */}
         <div className="flex-1 min-w-0">
@@ -79,7 +84,7 @@ function MappingRow({ file, match, fieldKey, onChange }: MappingRowProps) {
 
       {/* Multiple matches warning */}
       {isMultiple && (
-        <div className="flex items-center gap-1.5 pl-[calc(50%+1.5rem)] text-[0.8125rem] text-[var(--colors-tones-tertiary-t-40)]">
+        <div className="flex items-center gap-1.5 pl-[calc(50%+1.5rem)] text-[0.8125rem] text-(--colors-tones-tertiary-t-40)">
           <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
           <span>
             {match.candidates.length} potential matches — please select manually
@@ -89,8 +94,6 @@ function MappingRow({ file, match, fieldKey, onChange }: MappingRowProps) {
     </div>
   );
 }
-
-// ─── MappingStep ─────────────────────────────────────────────────────────────
 
 export function MappingStep({
   files,
@@ -113,7 +116,7 @@ export function MappingStep({
           File Name
         </p>
         {/* Spacer matching ArrowRight icon width */}
-        <div className="w-[18px] shrink-0" aria-hidden />
+        <div className="w-4.5 shrink-0" aria-hidden />
         <p className="flex-1 text-[0.875rem] font-semibold text-neutral-50">
           Mapped to
         </p>

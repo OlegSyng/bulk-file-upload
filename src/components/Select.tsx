@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { ChevronsUpDown } from "lucide-react";
+import ReactSelect, { type StylesConfig, type SingleValue } from "react-select";
 import { FormLabel } from "./FormLabel";
 import { cn } from "../utils/cn";
 
@@ -9,7 +9,7 @@ export interface SelectOption {
 }
 
 export interface SelectProps {
-  /** Label rendered above the select. Omit or pass an empty string to hide the label entirely. */
+  /** Label rendered above the select. Omit or pass an empty string to hide. */
   label?: string;
   value: string;
   onChange: (value: string) => void;
@@ -19,6 +19,108 @@ export interface SelectProps {
   disabled?: boolean;
   id?: string;
   className?: string;
+}
+
+function buildStyles(error: boolean): StylesConfig<SelectOption, false> {
+  const borderNormal = "var(--colors-tones-neutral-n-90)";
+  const borderError  = "var(--colors-tones-red-r-60)";
+  const borderFocus  = error
+    ? "var(--colors-tones-red-r-60)"
+    : "var(--colors-tones-primary-p-70)";
+
+  return {
+    control: (base, state) => ({
+      ...base,
+      minHeight: "3rem",
+      height: "3rem",
+      backgroundColor: "var(--colors-tones-neutral-n-100)",
+      borderWidth: 2,
+      borderStyle: "solid",
+      borderColor: error ? borderError : state.isFocused ? borderFocus : borderNormal,
+      borderRadius: 8,
+      boxShadow: "none",
+      outline: "none",
+      transition: "border-color 100ms",
+      cursor: "pointer",
+      "&:hover": {
+        borderColor: error ? borderError : state.isFocused ? borderFocus : borderNormal,
+      },
+    }),
+    valueContainer: (base) => ({
+      ...base,
+      padding: "0 0.5rem 0 0.75rem",
+    }),
+    singleValue: (base) => ({
+      ...base,
+      color: "var(--colors-tones-neutral-n-0)",
+      fontSize: "1rem",
+      fontWeight: 400,
+      lineHeight: "1.5",
+      margin: 0,
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: "var(--colors-tones-neutral-n-50)",
+      fontSize: "1rem",
+      fontWeight: 400,
+      margin: 0,
+    }),
+    indicatorSeparator: () => ({ display: "none" }),
+    dropdownIndicator: (base, state) => ({
+      ...base,
+      color: error
+        ? "var(--colors-tones-red-r-60)"
+        : "var(--colors-tones-neutral-n-40)",
+      padding: "0 0.625rem",
+      transition: "transform 200ms, color 100ms",
+      transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : "rotate(0deg)",
+      "&:hover": {
+        color: error
+          ? "var(--colors-tones-red-r-60)"
+          : "var(--colors-tones-neutral-n-40)",
+      },
+    }),
+    menu: (base) => ({
+      ...base,
+      backgroundColor: "var(--colors-tones-neutral-n-100)",
+      borderRadius: 8,
+      boxShadow:
+        "0px 1px 3px rgba(26,28,107,0.14), 0px 6px 12px rgba(26,28,107,0.12)",
+      zIndex: 9999,
+      overflow: "hidden",
+      marginTop: 4,
+    }),
+    menuList: (base) => ({
+      ...base,
+      padding: "4px 0",
+      maxHeight: 240,
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? "var(--colors-tones-primary-p-95)"
+        : state.isFocused
+          ? "var(--colors-tones-neutral-n-97)"
+          : "transparent",
+      color: state.isSelected
+        ? "var(--colors-tones-primary-p-40)"
+        : "var(--colors-tones-neutral-n-0)",
+      fontSize: "1rem",
+      fontWeight: state.isSelected ? 600 : 400,
+      padding: "0.5rem 0.75rem",
+      cursor: "pointer",
+      "&:active": {
+        backgroundColor: "var(--colors-tones-neutral-n-95)",
+      },
+    }),
+    input: (base) => ({
+      ...base,
+      color: "var(--colors-tones-neutral-n-0)",
+      fontSize: "1rem",
+      margin: 0,
+      padding: 0,
+    }),
+  };
 }
 
 export function Select({
@@ -33,62 +135,30 @@ export function Select({
   className = "",
 }: SelectProps) {
   const generatedId = useId();
-  const id = externalId ?? generatedId;
+  const inputId = externalId ?? generatedId;
 
-  const borderClass = error
-    ? "border-red-60 focus:border-red-60"
-    : "border-neutral-90 focus:border-primary-70";
+  const selected = options.find((o) => o.value === value) ?? null;
 
-  const textClass = value === "" ? "text-neutral-50" : "text-neutral-0";
-
-  const chevronColor = error ? "text-red-60" : "text-neutral-40";
+  function handleChange(opt: SingleValue<SelectOption>) {
+    onChange(opt?.value ?? "");
+  }
 
   return (
     <div className={cn("flex flex-col gap-1 w-full", className)}>
-      {label && <FormLabel htmlFor={id}>{label}</FormLabel>}
+      {label && <FormLabel htmlFor={inputId}>{label}</FormLabel>}
 
-      <div className="relative w-full">
-        <select
-          id={id}
-          value={value}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(
-            "w-full h-12 pl-3 pr-10 appearance-none rounded-lg border-2 bg-neutral-100 outline-none transition-colors duration-100",
-            "text-[1rem] font-normal leading-6",
-            "disabled:bg-neutral-99 disabled:text-neutral-50 disabled:cursor-not-allowed",
-            borderClass,
-            textClass,
-          )}
-        >
-          {placeholder && (
-            <option value="" disabled hidden>
-              {placeholder}
-            </option>
-          )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-
-        <span
-          className={cn(
-            "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2",
-            chevronColor,
-          )}
-          aria-hidden
-        >
-          <ChevronsUpDown size={20} strokeWidth={2} />
-        </span>
-      </div>
-
-      {error && (
-        <p className="text-[0.875rem] text-red-60 leading-5">
-          No match found
-        </p>
-      )}
+      <ReactSelect<SelectOption, false>
+        inputId={inputId}
+        value={selected}
+        onChange={handleChange}
+        options={options}
+        placeholder={placeholder}
+        isDisabled={disabled}
+        styles={buildStyles(error)}
+        isSearchable
+        menuPortalTarget={document.body}
+        menuPosition="fixed"
+      />
     </div>
   );
 }

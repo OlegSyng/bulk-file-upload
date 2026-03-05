@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+@theme inline {
+  /* Neutral */
+  --color-neutral-0:   var(--colors-tones-neutral-n-0);
+  --color-neutral-10:  var(--colors-tones-neutral-n-10);
+  --color-neutral-20:  var(--colors-tones-neutral-n-20);
+  --color-neutral-30:  var(--colors-tones-neutral-n-30);
+  --color-neutral-40:  var(--colors-tones-neutral-n-40);
+  --color-neutral-50:  var(--colors-tones-neutral-n-50);
+  --color-neutral-60:  var(--colors-tones-neutral-n-60);
+  --color-neutral-70:  var(--colors-tones-neutral-n-70);
+  --color-neutral-80:  var(--colors-tones-neutral-n-80);
+  --color-neutral-90:  var(--colors-tones-neutral-n-90);
+  --color-neutral-93:  var(--colors-tones-neutral-n-93);
+  --color-neutral-95:  var(--colors-tones-neutral-n-95);
+  --color-neutral-97:  var(--colors-tones-neutral-n-97);
+  --color-neutral-99:  var(--colors-tones-neutral-n-99);
+  --color-neutral-100: var(--colors-tones-neutral-n-100);
+
+  /* Primary */
+  --color-primary-40:  var(--colors-tones-primary-p-40);
+  --color-primary-50:  var(--colors-tones-primary-p-50);
+  --color-primary-60:  var(--colors-tones-primary-p-60);
+  --color-primary-70:  var(--colors-tones-primary-p-70);
+  --color-primary-80:  var(--colors-tones-primary-p-80);
+  --color-primary-95:  var(--colors-tones-primary-p-95);
+  --color-primary-99:  var(--colors-tones-primary-p-99);
+
+  /* Secondary */
+  --color-secondary-40: var(--colors-tones-secondary-s-40);
+  --color-secondary-90: var(--colors-tones-secondary-s-90);
+  --color-secondary-99: var(--colors-tones-secondary-s-99);
+
+  /* Red */
+  --color-red-40:  var(--colors-tones-red-r-40);
+  --color-red-50:  var(--colors-tones-red-r-50);
+  --color-red-60:  var(--colors-tones-red-r-60);
+  --color-red-90:  var(--colors-tones-red-r-90);
+  --color-red-95:  var(--colors-tones-red-r-95);
+
+  /* Green */
+  --color-green-40: var(--colors-tones-green-g-40);
+  --color-green-50: var(--colors-tones-green-g-50);
+  --color-green-60: var(--colors-tones-green-g-60);
+  --color-green-90: var(--colors-tones-green-g-90);
+  --color-green-99: var(--colors-tones-green-g-99);
+
+  /* Shadows */
+  --shadow-modal: var(--general__pop-up---box-shadow);
+  --shadow-card:  var(--general__card---box-shadow);
+}

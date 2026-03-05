@@ -6,11 +6,14 @@ import { AttachmentRow } from "../components/AttachmentRow";
 import { cn } from "../utils/cn";
 import { formatBytes } from "../utils/formatBytes";
 
-/** Fields from the student record that a file name can be mapped to. */
+/**
+ * The three fields a file name can be matched against, per the README spec.
+ * Labels match the design; values map to `Student` field keys.
+ */
 const FIELD_OPTIONS = [
+  { value: "id", label: "Portal ID" },
+  { value: "name", label: "Name" },
   { value: "studentID", label: "Student ID" },
-  { value: "name", label: "Student Name" },
-  { value: "grade", label: "Grade" },
 ];
 
 export interface UploadStepProps {

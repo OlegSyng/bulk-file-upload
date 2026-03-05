@@ -4,6 +4,7 @@ import { Button } from "../components/Button";
 import { UploadStep } from "./UploadStep";
 import { MappingStep } from "./MappingStep";
 import { submitUpload } from "../data/submit";
+import { fuzzyMatch, type MatchResult } from "../utils/fuzzyMatch";
 import { cn } from "../utils/cn";
 
 type Step = 1 | 2 | 3;
@@ -31,15 +32,18 @@ export function BulkUploadModal({ open, onClose }: BulkUploadModalProps) {
   const [step, setStep] = useState<Step>(1);
   const [files, setFiles] = useState<File[]>([]);
   const [fieldKey, setFieldKey] = useState("");
-  const [mappings, setMappings] = useState<Record<string, string>>({});
+  const [mappings, setMappings] = useState<Record<string, MatchResult>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canAdvance = fieldKey !== "" && files.length > 0;
-  const allMapped = files.length > 0 && files.every((f) => !!mappings[f.name]);
+
+  // Upload is only enabled when every file has a confirmed single student ID —
+  // "none" and "multiple" both require user action before proceeding.
+  const allMapped =
+    files.length > 0 && files.every((f) => mappings[f.name]?.kind === "match");
 
   function handleClose() {
     onClose();
-    // Delay reset so any closing animation isn't jarring
     setTimeout(reset, 300);
   }
 
@@ -52,11 +56,19 @@ export function BulkUploadModal({ open, onClose }: BulkUploadModalProps) {
   }
 
   function handleNext() {
-    if (canAdvance) setStep(2);
+    if (!canAdvance) return;
+    // Pre-compute all fuzzy matches before transitioning so step 2 renders
+    // with mappings already in place — no flash of unmatched rows.
+    const precomputed: Record<string, MatchResult> = {};
+    for (const file of files) {
+      precomputed[file.name] = fuzzyMatch(file.name, fieldKey);
+    }
+    setMappings(precomputed);
+    setStep(2);
   }
 
   function handleBack() {
-    // Clear mappings so MappingStep re-runs auto-match if fieldKey changes
+    // Clear mappings so they're re-computed fresh if the user changes fieldKey.
     setMappings({});
     setStep(1);
   }
@@ -67,10 +79,14 @@ export function BulkUploadModal({ open, onClose }: BulkUploadModalProps) {
     try {
       await submitUpload({
         fieldKey,
-        mappings: files.map((f) => ({
-          fileName: f.name,
-          studentId: mappings[f.name],
-        })),
+        mappings: files.map((f) => {
+          const m = mappings[f.name];
+          // allMapped guarantees kind === "match" here
+          return {
+            fileName: f.name,
+            studentId: m.kind === "match" ? m.studentId : "",
+          };
+        }),
       });
       setStep(3);
     } finally {
@@ -166,7 +182,6 @@ export function BulkUploadModal({ open, onClose }: BulkUploadModalProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 shrink-0">
-          {/* Left button */}
           <div>
             {step === 1 && (
               <Button
@@ -188,7 +203,6 @@ export function BulkUploadModal({ open, onClose }: BulkUploadModalProps) {
             )}
           </div>
 
-          {/* Right button */}
           <div>
             {step === 1 && (
               <Button

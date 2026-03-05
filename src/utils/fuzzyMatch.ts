@@ -4,11 +4,31 @@ import { students, type Student } from "../data/students";
 type FuseKey = { name: keyof Student; weight: number };
 
 /**
- * Confidence threshold for accepting a Fuse.js match.
- * Fuse scores range from 0 (perfect) to 1 (no match).
- * We only accept results below this value.
+ * Confidence threshold for accepting a Fuse.js result.
+ * Fuse scores range from 0 (perfect match) to 1 (no match).
+ * Results at or above this value are discarded.
  */
 const MATCH_THRESHOLD = 0.35;
+
+/**
+ * When two or more results fall within this score gap of the best result,
+ * they are all considered "multiple potential matches" rather than a single
+ * confident match.
+ */
+const AMBIGUITY_TOLERANCE = 0.08;
+
+/**
+ * The result of a fuzzy match against the student list.
+ *
+ * - `"none"`     — no result met the confidence threshold
+ * - `"match"`    — exactly one confident result; `studentId` is set
+ * - `"multiple"` — two or more results are close enough to be ambiguous;
+ *                  `candidates` lists all of them so the UI can show a warning
+ */
+export type MatchResult =
+  | { kind: "none" }
+  | { kind: "match"; studentId: string }
+  | { kind: "multiple"; candidates: string[] };
 
 /**
  * Normalize a file name for fuzzy matching:
@@ -19,44 +39,50 @@ const MATCH_THRESHOLD = 0.35;
  *
  * @example
  * normalizeFileName("100-001_james_wilson.pdf") // "100 001 james wilson"
+ * normalizeFileName("54321.pdf")                // "54321"
  */
 function normalizeFileName(fileName: string): string {
   return fileName
-    .replace(/\.[^/.]+$/, "") // strip extension
-    .replace(/[_\-]+/g, " ") // underscores/hyphens → spaces
-    .replace(/\s+/g, " ") // collapse whitespace
+    .replace(/\.[^/.]+$/, "")  // strip extension
+    .replace(/[_-]+/g, " ")    // underscores/hyphens → spaces
+    .replace(/\s+/g, " ")      // collapse whitespace
     .trim();
 }
 
 /**
+ * Build the Fuse key config for a given fieldKey, weighting the primary field
+ * 3× so it dominates matches while still allowing secondary fields to help.
+ *
+ * Supported fieldKeys (per README):
+ * - `"id"`        — Portal ID (system ID, e.g. "54321")
+ * - `"name"`      — Student name (e.g. "James Wilson")
+ * - `"studentID"` — School-assigned ID (e.g. "100-001")
+ */
+function buildKeys(fieldKey: string): FuseKey[] {
+  const primary = fieldKey as keyof Student;
+  const secondaries: (keyof Student)[] = (["id", "name", "studentID"] as const)
+    .filter((k) => k !== primary);
+
+  return [
+    { name: primary, weight: 3 },
+    ...secondaries.map((k) => ({ name: k, weight: 1 })),
+  ];
+}
+
+/**
  * Fuse.js index keyed by `fieldKey`.
- * Built lazily and cached so we only pay the construction cost once per field.
+ * Built lazily and cached — construction cost paid only once per field type.
  */
 const fuseCache = new Map<string, Fuse<Student>>();
 
 function getFuse(fieldKey: string): Fuse<Student> {
   if (fuseCache.has(fieldKey)) return fuseCache.get(fieldKey)!;
 
-  // Weight the chosen field higher so it's preferred over incidental matches
-  // on other fields.
-  const keys: FuseKey[] =
-    fieldKey === "studentID"
-      ? [
-          { name: "studentID", weight: 3 },
-          { name: "name", weight: 1 },
-        ]
-      : [
-          { name: "name", weight: 3 },
-          { name: "studentID", weight: 1 },
-        ];
-
   const fuse = new Fuse(students, {
-    keys,
+    keys: buildKeys(fieldKey),
     threshold: MATCH_THRESHOLD,
     includeScore: true,
-    // Ignore location so the match can appear anywhere in the string
     ignoreLocation: true,
-    // Minimum number of characters that must match
     minMatchCharLength: 2,
   });
 
@@ -67,29 +93,45 @@ function getFuse(fieldKey: string): Fuse<Student> {
 /**
  * Fuzzy-match a file name against the student list using Fuse.js.
  *
- * Returns the system `id` of the best-matching student, or `""` if no
- * confident match was found.
+ * Returns a typed `MatchResult` describing one of three outcomes:
+ * - `"none"`     — nothing met the confidence threshold
+ * - `"match"`    — one confident result found
+ * - `"multiple"` — two or more results are too close to call automatically
  *
- * @param fileName  - Raw file name including extension (e.g. `"100-001.pdf"`)
- * @param fieldKey  - Which student field to weight higher (`"studentID"` | `"name"` | `"grade"`)
+ * @param fileName  Raw file name including extension (e.g. `"54321.pdf"`)
+ * @param fieldKey  Which student field to weight (`"id"` | `"name"` | `"studentID"`)
  *
  * @example
- * fuzzyMatch("100-001.pdf", "studentID")   // "54321"  (James Wilson, 100-001)
- * fuzzyMatch("james_wilson.pdf", "name")   // "54321"
- * fuzzyMatch("unknown.pdf", "studentID")   // ""
+ * fuzzyMatch("54321.pdf", "id")          // { kind: "match", studentId: "54321" }
+ * fuzzyMatch("james_wilson.pdf", "name") // { kind: "match", studentId: "54321" }
+ * fuzzyMatch("unknown.pdf", "id")        // { kind: "none" }
  */
-export function fuzzyMatch(fileName: string, fieldKey: string): string {
+export function fuzzyMatch(fileName: string, fieldKey: string): MatchResult {
   const query = normalizeFileName(fileName);
-  if (!query) return "";
+  if (!query) return { kind: "none" };
 
   const fuse = getFuse(fieldKey);
   const results = fuse.search(query);
 
-  if (results.length === 0) return "";
+  if (results.length === 0) return { kind: "none" };
 
   const best = results[0];
-  // score closer to 0 = better match; reject if not confident enough
-  if ((best.score ?? 1) >= MATCH_THRESHOLD) return "";
+  const bestScore = best.score ?? 1;
 
-  return best.item.id;
+  // Reject if the best result isn't confident enough
+  if (bestScore >= MATCH_THRESHOLD) return { kind: "none" };
+
+  // Collect all results that are within the ambiguity tolerance of the best
+  const closeResults = results.filter(
+    (r) => (r.score ?? 1) - bestScore <= AMBIGUITY_TOLERANCE,
+  );
+
+  if (closeResults.length > 1) {
+    return {
+      kind: "multiple",
+      candidates: closeResults.map((r) => r.item.id),
+    };
+  }
+
+  return { kind: "match", studentId: best.item.id };
 }

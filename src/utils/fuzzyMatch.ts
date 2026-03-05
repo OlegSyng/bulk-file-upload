@@ -110,6 +110,21 @@ export function fuzzyMatch(fileName: string, fieldKey: string): MatchResult {
   const query = normalizeFileName(fileName);
   if (!query) return { kind: "none" };
 
+  // For identifier fields (id, studentID) try an exact match first.
+  // These fields contain numeric/code strings that are too similar for fuzzy
+  // scoring to disambiguate (e.g. "54321" vs "54322" score nearly the same).
+  if (fieldKey === "id" || fieldKey === "studentID") {
+    const key = fieldKey as "id" | "studentID";
+    // Normalise the student field the same way we normalise the file name
+    // (hyphens → spaces) so "100-001" matches "100 001".
+    const exact = students.find(
+      (s) => normalizeFileName(s[key]) === query,
+    );
+    if (exact) return { kind: "match", studentId: exact.id };
+    return { kind: "none" };
+  }
+
+  // For name matching, use fuzzy search as before.
   const fuse = getFuse(fieldKey);
   const results = fuse.search(query);
 

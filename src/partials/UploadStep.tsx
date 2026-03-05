@@ -3,42 +3,28 @@ import { Search } from "lucide-react";
 import { Select } from "../components/Select";
 import { FileDropzone } from "../components/FileDropzone";
 import { AttachmentRow } from "../components/AttachmentRow";
+import { useBulkUpload } from "../context/BulkUploadContext";
 import { cn } from "../utils/cn";
 import { formatBytes } from "../utils/formatBytes";
 
-/**
- * The three fields a file name can be matched against, per the README spec.
- * Labels match the design; values map to `Student` field keys.
- */
 const FIELD_OPTIONS = [
   { value: "id", label: "Portal ID" },
   { value: "name", label: "Name" },
   { value: "studentID", label: "Student ID" },
 ];
 
-export interface UploadStepProps {
-  files: File[];
-  onFilesChange: (files: File[]) => void;
-  fieldKey: string;
-  onFieldKeyChange: (key: string) => void;
-}
-
-export function UploadStep({
-  files,
-  onFilesChange,
-  fieldKey,
-  onFieldKeyChange,
-}: UploadStepProps) {
+export function UploadStep() {
+  const { files, setFiles, fieldKey, setFieldKey } = useBulkUpload();
   const [searchQuery, setSearchQuery] = useState("");
 
   function handleFilesAdded(incoming: File[]) {
     const existingNames = new Set(files.map((f) => f.name));
     const deduplicated = incoming.filter((f) => !existingNames.has(f.name));
-    onFilesChange([...files, ...deduplicated]);
+    setFiles([...files, ...deduplicated]);
   }
 
   function handleRemove(fileName: string) {
-    onFilesChange(files.filter((f) => f.name !== fileName));
+    setFiles(files.filter((f) => f.name !== fileName));
   }
 
   const filteredFiles = searchQuery.trim()
@@ -53,7 +39,7 @@ export function UploadStep({
       <Select
         label="Map File Name to Field"
         value={fieldKey}
-        onChange={onFieldKeyChange}
+        onChange={setFieldKey}
         options={FIELD_OPTIONS}
         placeholder="Select"
       />
@@ -63,7 +49,6 @@ export function UploadStep({
 
       {/* File list */}
       <div className="flex flex-col gap-3">
-        {/* Header row: label + search */}
         <div className="space-y-2">
           <p className="text-[1rem] font-semibold leading-5 text-neutral-20 shrink-0">
             Files ({files.length})

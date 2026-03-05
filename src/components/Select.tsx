@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import ReactSelect, { type StylesConfig, type SingleValue } from "react-select";
 import { FormLabel } from "./FormLabel";
 import { cn } from "../utils/cn";
@@ -23,8 +23,8 @@ export interface SelectProps {
 
 function buildStyles(error: boolean): StylesConfig<SelectOption, false> {
   const borderNormal = "var(--colors-tones-neutral-n-90)";
-  const borderError  = "var(--colors-tones-red-r-60)";
-  const borderFocus  = error
+  const borderError = "var(--colors-tones-red-r-60)";
+  const borderFocus = error
     ? "var(--colors-tones-red-r-60)"
     : "var(--colors-tones-primary-p-70)";
 
@@ -36,14 +36,22 @@ function buildStyles(error: boolean): StylesConfig<SelectOption, false> {
       backgroundColor: "var(--colors-tones-neutral-n-100)",
       borderWidth: 2,
       borderStyle: "solid",
-      borderColor: error ? borderError : state.isFocused ? borderFocus : borderNormal,
+      borderColor: error
+        ? borderError
+        : state.isFocused
+          ? borderFocus
+          : borderNormal,
       borderRadius: 8,
       boxShadow: "none",
       outline: "none",
       transition: "border-color 100ms",
       cursor: "pointer",
       "&:hover": {
-        borderColor: error ? borderError : state.isFocused ? borderFocus : borderNormal,
+        borderColor: error
+          ? borderError
+          : state.isFocused
+            ? borderFocus
+            : borderNormal,
       },
     }),
     valueContainer: (base) => ({
@@ -73,7 +81,9 @@ function buildStyles(error: boolean): StylesConfig<SelectOption, false> {
         : "var(--colors-tones-neutral-n-40)",
       padding: "0 0.625rem",
       transition: "transform 200ms, color 100ms",
-      transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : "rotate(0deg)",
+      transform: state.selectProps.menuIsOpen
+        ? "rotate(180deg)"
+        : "rotate(0deg)",
       "&:hover": {
         color: error
           ? "var(--colors-tones-red-r-60)"
@@ -139,6 +149,7 @@ export function Select({
   const inputId = externalId ?? generatedId;
 
   const selected = options.find((o) => o.value === value) ?? null;
+  const styles = useMemo(() => buildStyles(error), [error]);
 
   function handleChange(opt: SingleValue<SelectOption>) {
     onChange(opt?.value ?? "");
@@ -155,7 +166,7 @@ export function Select({
         options={options}
         placeholder={placeholder}
         isDisabled={disabled}
-        styles={buildStyles(error)}
+        styles={styles}
         isSearchable
         menuPortalTarget={document.body}
         menuPosition="fixed"

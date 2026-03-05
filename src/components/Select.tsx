@@ -80,6 +80,7 @@ function buildStyles(error: boolean): StylesConfig<SelectOption, false> {
           : "var(--colors-tones-neutral-n-40)",
       },
     }),
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
     menu: (base) => ({
       ...base,
       backgroundColor: "var(--colors-tones-neutral-n-100)",
